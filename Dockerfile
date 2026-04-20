@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libpq-dev \
     zip \
     unzip \
     git \
@@ -14,10 +15,10 @@ RUN apt-get update && apt-get install -y \
 # Մաքրում ենք քեշը
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Տեղադրում ենք PHP ընդլայնումները (extensions)
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+# Տեղադրում ենք PHP ընդլայնումները (Ավելացվել է pdo_pgsql)
+RUN docker-php-ext-install pdo_pgsql pdo_mysql mbstring exif pcntl bcmath gd
 
-# Միացնում ենք Apache-ի rewrite մոդուլը Laravel-ի URL-ների համար
+# Միացնում ենք Apache-ի rewrite մոդուլը
 RUN a2enmod rewrite
 
 # Տեղադրում ենք Composer
@@ -35,10 +36,11 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Տալիս ենք անհրաժեշտ թույլտվությունները storage թղթապանակին
+# Տալիս ենք թույլտվությունները
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Բացում ենք 80 պորտը
 EXPOSE 80
 
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=80
+# Աշխատեցնում ենք Migration-ը և մեկնարկում Apache-ն
+CMD php artisan migrate --force && apache2-foreground
